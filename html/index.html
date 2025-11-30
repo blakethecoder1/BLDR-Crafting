@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>BLDR Crafting Workshop</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0a0b0f;
+      --bg-secondary: #1a1d26;
+      --bg-accent: #2a2f3e;
+      --text-primary: #ffffff;
+      --text-secondary: #a1a8b8;
+      --text-muted: #6b7280;
+      --accent-blue: #3b82f6;
+      --accent-green: #10b981;
+      --accent-yellow: #f59e0b;
+      --accent-red: #ef4444;
+      --border-color: #374151;
+      --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: transparent;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      color: var(--text-primary); /* Ensure default text color is white */
+    }
+
+    /* Force all text elements to use white color by default */
+    * {
+      color: inherit;
+    }
+
+    h1, h2, h3, h4, h5, h6, p, span, div, label, input, button {
+      color: var(--text-primary);
+    }
+
+    #ui {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(8px);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 1000;
+    }
+
+    #ui.show {
+      opacity: 1;
+    }
+
+    .container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    .crafting-panel {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      width: 100%;
+      max-width: 900px;
+      max-height: 80vh;
+      box-shadow: var(--shadow-lg);
+      transform: scale(0.9) translateY(20px);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      overflow: hidden;
+    }
+
+    #ui.show .crafting-panel {
+      transform: scale(1) translateY(0);
+    }
+
+    .panel-header {
+      background: linear-gradient(135deg, var(--bg-accent) 0%, var(--bg-secondary) 100%);
+      padding: 2rem;
+      border-bottom: 1px solid var(--border-color);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .panel-header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent-blue), var(--accent-green));
+    }
+
+    .header-title {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .header-title::before {
+      content: '⚒️';
+      font-size: 1.5rem;
+    }
+
+    .header-subtitle {
+      color: var(--text-secondary);
+      font-size: 1rem;
+      font-weight: 500;
+    }
+
+    .close-btn {
+      position: absolute;
+      top: 1.5rem;
+      right: 1.5rem;
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      color: var(--text-secondary);
+      font-size: 1.25rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .close-btn:hover {
+      background: var(--accent-red);
+      color: white;
+      transform: scale(1.05);
+    }
+
+    .panel-content {
+      padding: 2rem;
+      max-height: 60vh;
+      overflow-y: auto;
+    }
+
+    .category-section {
+      margin-bottom: 2rem;
+    }
+
+    .category-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .category-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .category-count {
+      background: var(--accent-blue);
+      color: white;
+      padding: 0.25rem 0.5rem;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .recipes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+      gap: 1rem;
+    }
+
+    .recipe-card {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 1.5rem;
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .recipe-card:hover {
+      border-color: var(--accent-blue);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .recipe-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 1rem;
+    }
+
+    .recipe-name {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 0.25rem;
+    }
+
+    .recipe-time {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .difficulty-badge {
+      padding: 0.25rem 0.75rem;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .difficulty-easy {
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--accent-green);
+    }
+
+    .difficulty-medium {
+      background: rgba(245, 158, 11, 0.2);
+      color: var(--accent-yellow);
+    }
+
+    .difficulty-hard {
+      background: rgba(239, 68, 68, 0.2);
+      color: var(--accent-red);
+    }
+
+    .ingredients-section {
+      margin: 1rem 0;
+    }
+
+    .ingredients-title {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 0.5rem;
+    }
+
+    .ingredients-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .ingredient-item {
+      background: var(--bg-accent);
+      padding: 0.375rem 0.75rem;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      border: 1px solid var(--border-color);
+    }
+
+    .ingredient-item.available {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--accent-green);
+      border-color: var(--accent-green);
+    }
+
+    .ingredient-item.unavailable {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--accent-red);
+      border-color: var(--accent-red);
+    }
+
+    .craft-btn {
+      width: 100%;
+      padding: 0.875rem 1.5rem;
+      background: linear-gradient(135deg, var(--accent-blue) 0%, #2563eb 100%);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+
+    .craft-btn:hover:not(.disabled) {
+      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+    }
+
+    .craft-btn.disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      background: var(--bg-accent);
+      color: var(--text-muted);
+    }
+
+    .recipe-rewards {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 0.75rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .reward-item {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.25rem 0.5rem;
+      background: var(--bg-accent);
+      border-radius: 6px;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+
+    .xp-reward {
+      color: var(--accent-blue);
+    }
+
+    .money-reward {
+      color: var(--accent-green);
+    }
+
+    .level-requirement {
+      color: var(--accent-yellow);
+    }
+
+    .recipe-output {
+      margin-top: 0.5rem;
+      padding: 0.5rem;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid var(--accent-green);
+      border-radius: 8px;
+      font-size: 0.875rem;
+    }
+
+    .output-title {
+      font-weight: 600;
+      color: var(--accent-green);
+      margin-bottom: 0.25rem;
+    }
+
+    .output-item {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    /* Smooth hover animations */
+    .recipe-card {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .recipe-card:hover .craft-btn:not(.disabled) {
+      background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+    }
+
+    /* Loading states */
+    .recipe-card.crafting {
+      opacity: 0.7;
+      pointer-events: none;
+    }
+
+    .recipe-card.crafting .craft-btn {
+      background: var(--bg-accent);
+      color: var(--text-muted);
+    }
+
+    .loading-spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top: 2px solid white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 3rem;
+      color: var(--text-muted);
+    }
+
+    .empty-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      color: var(--text-muted);
+    }
+
+    /* Additional explicit text color rules */
+    .recipe-description {
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .ingredient-count {
+      color: var(--text-secondary);
+    }
+
+    .ingredient-name {
+      color: var(--text-primary);
+    }
+
+    .recipe-details {
+      color: var(--text-secondary);
+    }
+
+    /* Ensure all input and form elements have proper colors */
+    input, select, textarea {
+      color: var(--text-primary);
+      background: var(--bg-accent);
+      border: 1px solid var(--border-color);
+    }
+
+    /* Override any potential browser default colors */
+    button {
+      color: inherit;
+    }
+
+    /* Force text color in specific areas that might have issues */
+    .panel-content * {
+      color: inherit;
+    }
+
+    .recipe-card * {
+      color: inherit;
+    }
+
+    /* Override browser defaults and ensure all text is visible */
+    .crafting-panel,
+    .crafting-panel * {
+      color: var(--text-primary) !important;
+    }
+
+    /* Specific overrides for secondary text */
+    .text-secondary,
+    .recipe-time,
+    .ingredients-title,
+    .ingredient-item,
+    .reward-item {
+      color: var(--text-secondary) !important;
+    }
+
+    /* Specific overrides for muted text */
+    .text-muted,
+    .empty-state p {
+      color: var(--text-muted) !important;
+    }
+
+    /* Ensure colored elements keep their colors */
+    .difficulty-easy {
+      color: var(--accent-green) !important;
+    }
+
+    .difficulty-medium {
+      color: var(--accent-yellow) !important;
+    }
+
+    .difficulty-hard {
+      color: var(--accent-red) !important;
+    }
+
+    .xp-reward {
+      color: var(--accent-blue) !important;
+    }
+
+    .money-reward {
+      color: var(--accent-green) !important;
+    }
+
+    .level-requirement {
+      color: var(--accent-yellow) !important;
+    }
+
+    .output-title {
+      color: var(--accent-green) !important;
+    }
+
+    /* Custom scrollbar */
+    .panel-content::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .panel-content::-webkit-scrollbar-track {
+      background: var(--bg-primary);
+      border-radius: 4px;
+    }
+
+    .panel-content::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: 4px;
+    }
+
+    .panel-content::-webkit-scrollbar-thumb:hover {
+      background: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <div id="ui">
+    <div class="container">
+      <div class="crafting-panel">
+        <div class="panel-header">
+          <div class="header-title">Crafting Workshop</div>
+          <div class="header-subtitle">Create items using your materials and skills</div>
+          <button class="close-btn" onclick="closeUI()">✕</button>
+          <div style="margin-top: 1rem;">
+            <input type="text" id="search-input" placeholder="🔍 Search recipes..." 
+                   style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 8px; 
+                          background: var(--bg-primary); color: var(--text-primary); font-size: 0.875rem;"
+                   oninput="filterRecipes()">
+          </div>
+        </div>
+        <div class="panel-content" id="content">
+          <!-- Content will be populated by JavaScript -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const $ui = () => document.getElementById('ui');
+    const $content = () => document.getElementById('content');
+
+    let isLoading = false;
+
+    function hideUI() {
+      const ui = $ui();
+      ui.classList.remove('show');
+      setTimeout(() => {
+        ui.style.display = 'none';
+      }, 300);
+    }
+
+    function showUI() {
+      const ui = $ui();
+      ui.style.display = 'block';
+      setTimeout(() => {
+        ui.classList.add('show');
+      }, 10);
+    }
+
+    function closeUI() {
+      hideUI();
+      fetch(`https://${GetParentResourceName()}/close`, { method: 'POST' });
+    }
+
+    document.addEventListener('DOMContentLoaded', hideUI);
+
+    // Listen for messages from Lua
+    window.addEventListener('message', (e) => {
+      const data = e.data || {};
+      
+      if (data.action === 'open') {
+        buildRecipeList(data.payload?.recipes || []);
+        showUI();
+      }
+      
+      if (data.action === 'close' || data.action === 'hide') {
+        hideUI();
+      }
+    });
+
+    function getDifficultyClass(difficulty) {
+      switch(difficulty?.toLowerCase()) {
+        case 'hard': return 'difficulty-hard';
+        case 'medium': return 'difficulty-medium';
+        case 'easy':
+        default: return 'difficulty-easy';
+      }
+    }
+
+    function formatTime(milliseconds) {
+      const seconds = Math.floor(milliseconds / 1000);
+      if (seconds < 60) return `${seconds}s`;
+      const minutes = Math.floor(seconds / 60);
+      const remainingSeconds = seconds % 60;
+      return remainingSeconds > 0 ? `${minutes}m ${remainingSeconds}s` : `${minutes}m`;
+    }
+
+    function createIngredientsList(ingredients) {
+      if (!ingredients || !Array.isArray(ingredients)) return '';
+      
+      return ingredients.map(ingredient => {
+        const name = ingredient.label || ingredient.item || 'Unknown Item';
+        const amount = ingredient.amount || ingredient.count || 1;
+        const available = ingredient.available !== false; // Default to true if not specified
+        
+        return `<div class="ingredient-item ${available ? 'available' : 'unavailable'}">
+          ${amount}x ${name}
+        </div>`;
+      }).join('');
+    }
+
+    function createRecipeCard(recipe) {
+      const difficultyClass = getDifficultyClass(recipe.difficulty);
+      const timeStr = formatTime(recipe.time || 2000);
+      const canCraft = recipe.canCraft !== false;
+      const ingredients = createIngredientsList(recipe.ingredients);
+      
+      // Create output display
+      const outputs = createOutputsList(recipe.outputs);
+      
+      // Create rewards display
+      const rewards = createRewardsDisplay(recipe);
+      
+      return `
+        <div class="recipe-card" data-recipe-key="${recipe.key}">
+          <div class="recipe-header">
+            <div>
+              <div class="recipe-name">${recipe.label || 'Unknown Recipe'}</div>
+              <div class="recipe-time">⏱️ ${timeStr}</div>
+            </div>
+            <div class="difficulty-badge ${difficultyClass}">
+              ${recipe.difficulty || 'Easy'}
+            </div>
+          </div>
+          
+          ${recipe.description ? `
+            <div style="color: var(--text-secondary); font-size: 0.875rem; margin: 0.5rem 0;">
+              ${recipe.description}
+            </div>
+          ` : ''}
+          
+          ${outputs ? `
+            <div class="recipe-output">
+              <div class="output-title">🎁 You'll Get:</div>
+              ${outputs}
+            </div>
+          ` : ''}
+          
+          ${ingredients ? `
+            <div class="ingredients-section">
+              <div class="ingredients-title">📦 Required Materials:</div>
+              <div class="ingredients-list">${ingredients}</div>
+            </div>
+          ` : ''}
+          
+          ${rewards ? `
+            <div class="recipe-rewards">${rewards}</div>
+          ` : ''}
+          
+          <button class="craft-btn ${!canCraft ? 'disabled' : ''}" 
+                  onclick="craftItem('${recipe.key}')" 
+                  ${!canCraft ? 'disabled' : ''}>
+            ${isLoading ? '<div class="loading-spinner"></div>' : '⚒️'} 
+            ${canCraft ? 'Craft Item' : 'Missing Materials'}
+          </button>
+        </div>
+      `;
+    }
+
+    function createOutputsList(outputs) {
+      if (!outputs || typeof outputs !== 'object') return '';
+      
+      return Object.entries(outputs).map(([item, amount]) => {
+        return `<span class="output-item">${amount}x ${item}</span>`;
+      }).join(', ');
+    }
+
+    function createRewardsDisplay(recipe) {
+      const rewards = [];
+      
+      if (recipe.xp && recipe.xp > 0) {
+        rewards.push(`<div class="reward-item xp-reward">⭐ +${recipe.xp} XP</div>`);
+      }
+      
+      if (recipe.moneyReward && recipe.moneyReward > 0) {
+        rewards.push(`<div class="reward-item money-reward">💰 $${recipe.moneyReward}</div>`);
+      }
+      
+      if (recipe.level && recipe.level > 0) {
+        rewards.push(`<div class="reward-item level-requirement">🔒 Lvl ${recipe.level}</div>`);
+      }
+      
+      return rewards.join('');
+    }
+
+    function buildRecipeList(recipes) {
+      const content = $content();
+      
+      if (!recipes || recipes.length === 0) {
+        content.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">📦</div>
+            <h3>No Recipes Available</h3>
+            <p>You don't have access to any crafting recipes at this location.</p>
+          </div>
+        `;
+        return;
+      }
+
+      // Group recipes by category
+      const categories = {};
+      recipes.forEach(recipe => {
+        const category = recipe.category || 'General';
+        if (!categories[category]) {
+          categories[category] = [];
+        }
+        categories[category].push(recipe);
+      });
+
+      let html = '';
+      
+      Object.entries(categories).forEach(([categoryName, categoryRecipes]) => {
+        html += `
+          <div class="category-section">
+            <div class="category-header">
+              <div class="category-title">${categoryName}</div>
+              <div class="category-count">${categoryRecipes.length}</div>
+            </div>
+            <div class="recipes-grid">
+              ${categoryRecipes.map(recipe => createRecipeCard(recipe)).join('')}
+            </div>
+          </div>
+        `;
+      });
+
+      content.innerHTML = html;
+    }
+
+    function craftItem(recipeKey) {
+      if (isLoading) return;
+      
+      isLoading = true;
+      
+      // Find the specific recipe card being crafted
+      const recipeCard = document.querySelector(`[data-recipe-key="${recipeKey}"]`);
+      if (recipeCard) {
+        recipeCard.classList.add('crafting');
+        const button = recipeCard.querySelector('.craft-btn');
+        if (button) {
+          button.innerHTML = '<div class="loading-spinner"></div> Starting...';
+        }
+      }
+      
+      // Add slight delay for better UX feedback
+      setTimeout(() => {
+        fetch(`https://${GetParentResourceName()}/craft`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key: recipeKey })
+        }).finally(() => {
+          isLoading = false;
+          
+          // Add success animation before closing
+          if (recipeCard) {
+            recipeCard.style.background = 'rgba(16, 185, 129, 0.1)';
+            recipeCard.style.borderColor = 'var(--accent-green)';
+          }
+          
+          setTimeout(() => {
+            closeUI();
+          }, 500);
+        });
+      }, 300);
+    }
+
+    // Close UI on ESC key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeUI();
+      }
+    });
+
+    // Search and filter functionality
+    function filterRecipes() {
+      const searchTerm = document.getElementById('search-input').value.toLowerCase();
+      const recipeCards = document.querySelectorAll('.recipe-card');
+      
+      recipeCards.forEach(card => {
+        const recipeName = card.querySelector('.recipe-name').textContent.toLowerCase();
+        const recipeDesc = card.querySelector('[style*="color: var(--text-secondary)"]');
+        const description = recipeDesc ? recipeDesc.textContent.toLowerCase() : '';
+        
+        if (recipeName.includes(searchTerm) || description.includes(searchTerm)) {
+          card.style.display = 'block';
+          card.style.opacity = '1';
+        } else {
+          card.style.display = 'none';
+          card.style.opacity = '0';
+        }
+      });
+    }
+
+    // Prevent context menu
+    document.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+    });
+  </script>
+</body>
+</html>
