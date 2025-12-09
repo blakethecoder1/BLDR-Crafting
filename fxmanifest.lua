@@ -11,6 +11,12 @@ name 'bldr_crafting'
 description 'Simple crafting system for BLDR'
 author 'blakethepet'
 
+dependencies {
+    'bldr_core',
+    'qb-core',
+    'qb-target'
+}
+
 shared_script 'config.lua'
 
 client_scripts {
