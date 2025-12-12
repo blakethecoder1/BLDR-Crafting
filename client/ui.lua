@@ -76,12 +76,20 @@ end)
 
 -- Handle crafting request from UI
 RegisterNUICallback('craft', function(data, cb)
+    print("^5^5^5 ========== CRAFT CALLBACK FROM NUI ========== ^0^0^0")
+    print("^5[UI] Data received: " .. json.encode(data) .. "^0")
+    
     cb('ok') -- Immediate callback to prevent NUI timeout
     
     if data and data.key then
         -- Add crafting started notification
+        print("^5[UI] Triggering server event: bldr_crafting:startCraft^0")
+        print("^5[UI] Recipe key: " .. tostring(data.key) .. "^0")
         QBCore.Functions.Notify('Starting to craft...', 'primary', 2000)
         TriggerServerEvent('bldr_crafting:startCraft', data.key)
+        print("^5[UI] Server event triggered^0")
+    else
+        print("^1[UI] ERROR: No recipe key in data!^0")
     end
     
     -- Close UI after slight delay for better UX

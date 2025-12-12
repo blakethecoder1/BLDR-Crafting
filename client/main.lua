@@ -5,6 +5,16 @@
 
 local QBCore = exports['qb-core']:GetCoreObject()
 
+-- Detect which target system is available
+local TargetSystem = nil
+if GetResourceState('ox_target') == 'started' then
+    TargetSystem = 'ox_target'
+elseif GetResourceState('qb-target') == 'started' then
+    TargetSystem = 'qb-target'
+else
+    print("[bldr_crafting] WARNING: No target system detected (ox_target or qb-target)")
+end
+
 -- helper to build a description string from a recipe's inputs
 local function buildInputDescription(inputs)
     local parts = {}
@@ -24,7 +34,12 @@ CreateThread(function()
         return
     end
     
-    print(("[bldr_crafting] Found %d crafting stations"):format(#Config.CraftingStations))
+    if not TargetSystem then
+        print("[bldr_crafting] ERROR: No target system available!")
+        return
+    end
+    
+    print(("[bldr_crafting] Found %d crafting stations using %s"):format(#Config.CraftingStations, TargetSystem))
     
     for index, station in ipairs(Config.CraftingStations) do
         local zoneName = 'bldr_craft_' .. index
@@ -32,34 +47,59 @@ CreateThread(function()
         
         print(("[bldr_crafting] Setting up station %d: %s at %s"):format(index, station.label, tostring(coords)))
         
-        if not exports['qb-target'] then
-            print("[bldr_crafting] ERROR: qb-target export not found!")
-            return
-        end
-        
-        local success, err = pcall(function()
-            exports['qb-target']:AddCircleZone(zoneName, coords, 1.5, {
-                name = zoneName,
-                useZ = true,
-                debugPoly = false
-            }, {
-                options = {
-                    {
-                        type  = 'client',
-                        event = 'bldr_crafting:clientOpenStation',
-                        icon  = station.icon or 'fas fa-box-open',
-                        label = station.label or 'Craft Items',
-                        stationId = index
+        if TargetSystem == 'ox_target' then
+            -- Use ox_target
+            local success, err = pcall(function()
+                exports.ox_target:addSphereZone({
+                    coords = coords,
+                    radius = 1.5,
+                    debug = false,
+                    options = {
+                        {
+                            name = zoneName,
+                            icon = station.icon or 'fas fa-box-open',
+                            label = station.label or 'Craft Items',
+                            onSelect = function()
+                                TriggerEvent('bldr_crafting:clientOpenStation', { stationId = index })
+                            end,
+                            distance = 2.0
+                        }
                     }
-                },
-                distance = 2.0
-            })
-        end)
-        
-        if success then
-            print(("[bldr_crafting] Successfully created zone: %s"):format(zoneName))
-        else
-            print(("[bldr_crafting] ERROR creating zone %s: %s"):format(zoneName, tostring(err)))
+                })
+            end)
+            
+            if success then
+                print(("[bldr_crafting] Successfully created ox_target zone: %s"):format(zoneName))
+            else
+                print(("[bldr_crafting] ERROR creating ox_target zone %s: %s"):format(zoneName, tostring(err)))
+            end
+            
+        elseif TargetSystem == 'qb-target' then
+            -- Use qb-target
+            local success, err = pcall(function()
+                exports['qb-target']:AddCircleZone(zoneName, coords, 1.5, {
+                    name = zoneName,
+                    useZ = true,
+                    debugPoly = false
+                }, {
+                    options = {
+                        {
+                            type  = 'client',
+                            event = 'bldr_crafting:clientOpenStation',
+                            icon  = station.icon or 'fas fa-box-open',
+                            label = station.label or 'Craft Items',
+                            stationId = index
+                        }
+                    },
+                    distance = 2.0
+                })
+            end)
+            
+            if success then
+                print(("[bldr_crafting] Successfully created qb-target zone: %s"):format(zoneName))
+            else
+                print(("[bldr_crafting] ERROR creating qb-target zone %s: %s"):format(zoneName, tostring(err)))
+            end
         end
     end
     
@@ -199,74 +239,161 @@ RegisterNetEvent('bldr_crafting:clientOpenStation', function(data)
 end) -- End of bldr_crafting:clientOpenStation event
 
 -- handle crafting start: forward to UI progress
-RegisterNetEvent('bldr_crafting:craftingStarted', function(recipeKey, time)
+RegisterNetEvent('bldr_crafting:craftingStarted', function(recipeKey, time, label, category)
+    -- [FIX] Add immediate debug logging to see if event is received
+    print("^1^1^1 ========== CRAFTING STARTED EVENT FIRED ========== ^0^0^0")
+    print("^1[CRAFTING] Recipe: " .. tostring(recipeKey) .. "^0")
+    print("^1[CRAFTING] Time: " .. tostring(time) .. "^0")
+    print("^1[CRAFTING] Label: " .. tostring(label) .. "^0")
+    print("^1[CRAFTING] Category: " .. tostring(category) .. "^0")
+    
     -- server indicates crafting has started.  Hide the crafting UI and
     -- perform the progress bar and skill check on the client.  Once
     -- complete send the result back to the server.
-    local label = nil
-    if type(time) == 'table' then
-        -- backwards compatibility if time is actually a table
-        label = time.label or nil
-        time  = time.time or 0
-    end
+    
+    -- Ensure time is a valid number
+    time = tonumber(time) or 5000
+    label = label or 'Item'
+    category = category or 'general'
+    
     -- close the NUI crafting list to prevent further interaction
     TriggerEvent('bldr_crafting:closeUI')
+    
     -- Get recipe for difficulty settings
     local recipe = Config.Recipes[recipeKey]
     local difficulty = recipe and recipe.difficulty or 'easy'
-    local diffSettings = Config.Difficulty[difficulty] or Config.Difficulty.easy
+    local diffSettings = Config.Difficulty and Config.Difficulty[difficulty] or {}
     
-    -- show progress bar using ox_lib if available
-    if exports['ox_lib'] and exports['ox_lib'].progressCircle then
-        exports['ox_lib']:progressCircle({
-            duration = time or 5000,
-            label    = label and ('Crafting ' .. label) or 'Crafting...',
-            useWhileDead = false,
-            canCancel = false,
-            disable = {
-                move = true,
-                car = true,
-                combat = true
-            },
-            anim = {
-                dict = 'mp_common',
-                clip = 'givetake1_a'
-            }
-        })
-    elseif QBCore and QBCore.Functions and QBCore.Functions.Progressbar then
-        QBCore.Functions.Progressbar('bldr_crafting', label and ('Crafting ' .. label) or 'Crafting...', time or 5000, false, true, {
-            disableMovement = true,
-            disableCarMovement = true,
-            disableMouse = false,
-            disableCombat = true
-        }, {
-            animDict = 'mp_common',
-            anim = 'givetake1_a'
-        }, {}, {}, function() end)
-    else
-        -- fallback: simple wait
-        Wait(time or 5000)
+    -- Get animation config for category
+    local animConfig = nil
+    if Config.Animations and Config.Animations.enabled and Config.Animations.byCategory then
+        animConfig = Config.Animations.byCategory[category] or Config.Animations.byCategory.general
     end
     
-    -- perform skill check if ox_lib provides it
+    -- Start minigame immediately (no wait needed, minigame provides timing)
     local success = true
     local quality = nil
-    if exports['ox_lib'] and exports['ox_lib'].skillCheck then
-        success = exports['ox_lib']:skillCheck({
-            area = diffSettings.area,
-            speed = diffSettings.speed,
-            attempts = diffSettings.attempts
-        })
-        if success then
-            quality = math.random(80, 100)
-        else
-            quality = math.random(40, 70)
-        end
+    local minigameResult = 'skipped'
+    local ped = PlayerPedId()
+    
+    -- [FIX] Debug logging - ALWAYS PRINT (not behind Config.Debug)
+    print("^3========== CRAFTING PROCESSING START ==========^0")
+    print("^3[CRAFTING] Recipe: " .. tostring(recipeKey) .. "^0")
+    print("^3[CRAFTING] Minigame enabled: " .. tostring(Config.CraftingMinigame and Config.CraftingMinigame.enabled) .. "^0")
+    print("^3[CRAFTING] ShowCraftingMinigame type: " .. type(ShowCraftingMinigame) .. "^0")
+    print("^3[CRAFTING] ShowCraftingMinigame value: " .. tostring(ShowCraftingMinigame) .. "^0")
+    
+    -- Check if minigame is enabled and function exists
+    if Config.CraftingMinigame and Config.CraftingMinigame.enabled and type(ShowCraftingMinigame) == 'function' then
+        print("^2[CRAFTING] >>> STARTING MINIGAME PATH <<<^0")
+        
+        -- [FIX] Show minigame and WAIT for callback before proceeding
+        local minigameCompleted = false
+        
+        ShowCraftingMinigame(recipeKey, difficulty, function(result)
+            print("^2[CRAFTING] Minigame callback received! Result: " .. result .. "^0")
+            minigameResult = result
+            
+            -- Clear animation after minigame
+            if animConfig then
+                ClearPedTasks(ped)
+                if animConfig.dict then
+                    RemoveAnimDict(animConfig.dict)
+                end
+            end
+            
+            -- Calculate quality based on minigame result
+            local rewards = Config.CraftingMinigame.rewards[result] or Config.CraftingMinigame.rewards.success
+            
+            if result == 'success' then
+                success = true
+                quality = math.random(80, 100)
+            elseif result == 'failed' then
+                -- Check if crafting fails completely
+                if math.random() < (rewards.failureChance or 0) then
+                    success = false
+                    quality = 0
+                else
+                    success = true
+                    quality = math.random(30, 60)
+                end
+            elseif result == 'cancelled' then
+                -- [FIX] Handle cancellation properly
+                success = false
+                quality = 0
+                print("^1[CRAFTING] Minigame cancelled by player^0")
+            else
+                -- Default
+                success = true
+                quality = math.random(70, 85)
+            end
+            
+            -- send result back to server with minigame data
+            print("^2[CRAFTING] Sending result to server: success=" .. tostring(success) .. " quality=" .. tostring(quality) .. "^0")
+            TriggerServerEvent('bldr_crafting:finishCraft', recipeKey, success, quality, minigameResult)
+        end)
+        
+        -- [FIX] Don't continue - callback handles everything
+        print("^2[CRAFTING] Minigame started, waiting for completion...^0")
+        return
     else
+        print("^1[CRAFTING] >>> USING FALLBACK PATH (No minigame) <<<^0")
+        -- No minigame enabled, play animation and wait for crafting time
+        if animConfig then
+            local ped = PlayerPedId()
+            
+            if animConfig.dict then
+                RequestAnimDict(animConfig.dict)
+                while not HasAnimDictLoaded(animConfig.dict) do
+                    Wait(10)
+                end
+                TaskPlayAnim(ped, animConfig.dict, animConfig.anim, 8.0, -8.0, -1, animConfig.flag or 1, 0, false, false, false)
+            elseif animConfig.scenario then
+                TaskStartScenarioInPlace(ped, animConfig.scenario, 0, true)
+            end
+            
+            -- If particle effects defined, spawn them
+            if animConfig.particleEffect then
+                local particleEffect = animConfig.particleEffect
+                if particleEffect.dict and particleEffect.name then
+                    CreateThread(function()
+                        local startTime = GetGameTimer()
+                        local duration = time
+                        
+                        RequestNamedPtfxAsset(particleEffect.dict)
+                        while not HasNamedPtfxAssetLoaded(particleEffect.dict) do
+                            Wait(10)
+                        end
+                        
+                        while GetGameTimer() - startTime < duration do
+                            local coords = GetEntityCoords(ped)
+                            UseParticleFxAssetNextCall(particleEffect.dict)
+                            StartParticleFxNonLoopedAtCoord(particleEffect.name, coords.x, coords.y, coords.z + 0.5, 0.0, 0.0, 0.0, particleEffect.scale or 1.0, false, false, false)
+                            Wait(1000) -- Spawn particle every second
+                        end
+                        
+                        RemoveNamedPtfxAsset(particleEffect.dict)
+                    end)
+                end
+            end
+        end
+        
+        Wait(time)
+        
+        -- Clear animation
+        if animConfig then
+            local ped = PlayerPedId()
+            ClearPedTasks(ped)
+            if animConfig.dict then
+                RemoveAnimDict(animConfig.dict)
+            end
+        end
+        
         quality = math.random(70, 100)
+        
+        -- send result back to server
+        TriggerServerEvent('bldr_crafting:finishCraft', recipeKey, success, quality, 'none')
     end
-    -- send result back to server
-    TriggerServerEvent('bldr_crafting:finishCraft', recipeKey, success, quality)
 end)
 
 -- display notifications from server

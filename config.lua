@@ -5,6 +5,133 @@
 
 Config = {}
 
+-- [FIX] Debug mode for troubleshooting minigame and progress bar issues
+Config.Debug = false  -- Set to true to enable detailed console logs
+
+-- You can force a specific system by setting these values
+Config.Systems = {
+    -- Target system: 'auto', 'ox_target', or 'qb-target'
+    -- Auto will detect which is available
+    target = 'auto',
+    
+    -- Inventory system: 'auto', 'ox_inventory', or 'qb-inventory'
+    -- Auto will detect which is available
+    inventory = 'auto'
+}
+
+-- Station Upgrades System
+Config.StationUpgrades = {
+    enabled = true,
+    levels = {
+        [1] = { 
+            label = 'Basic Station',
+            speedMultiplier = 1.0,
+            qualityBonus = 0,
+            successRate = 1.0,
+            cost = 0,
+            requiredLevel = 0
+        },
+        [2] = {
+            label = 'Improved Station',
+            speedMultiplier = 0.8,     -- 20% faster
+            qualityBonus = 5,
+            successRate = 1.0,
+            cost = 10000,
+            requiredLevel = 3
+        },
+        [3] = {
+            label = 'Advanced Station',
+            speedMultiplier = 0.6,     -- 40% faster
+            qualityBonus = 10,
+            successRate = 1.0,
+            cost = 25000,
+            requiredLevel = 5
+        },
+        [4] = {
+            label = 'Master Station',
+            speedMultiplier = 0.4,     -- 60% faster
+            qualityBonus = 20,
+            successRate = 1.0,
+            cost = 50000,
+            requiredLevel = 7
+        }
+    }
+}
+
+-- Crafting Animations System
+Config.Animations = {
+    enabled = true,
+    byCategory = {
+        weed = {
+            dict = 'anim@amb@business@weed@weed_inspecting_high_dry@',
+            anim = 'weed_inspecting_high_base_inspector',
+            flag = 16,
+            duration = -1
+        },
+        cocaine = {
+            dict = 'anim@amb@business@coc@coc_unpack_cut@',
+            anim = 'fullcut_cycle_v1_cokecutter',
+            flag = 16,
+            duration = -1
+        },
+        heroin = {
+            dict = 'anim@amb@business@coc@coc_unpack_cut@',
+            anim = 'fullcut_cycle_v6_cokecutter',
+            flag = 16,
+            duration = -1
+        },
+        general = {
+            dict = 'mini@repair',
+            anim = 'fixing_a_player',
+            flag = 16,
+            duration = -1
+        }
+    },
+    particles = {
+        enabled = true,
+        effects = {
+            weed = { dict = 'core', name = 'ent_dst_leaves', scale = 1.0 },
+            cocaine = { dict = 'core', name = 'ent_dst_dust', scale = 0.5 },
+            general = { dict = 'core', name = 'ent_sht_sparks', scale = 0.3 }
+        }
+    }
+}
+
+-- Crafting Minigame System
+Config.CraftingMinigame = {
+    enabled = true,
+    type = 'buttonmash',  -- Simple button mashing minigame
+    optional = false,     -- Minigame is required
+    difficulties = {
+        easy = {
+            duration = 4000,
+            buttonPresses = 8
+        },
+        medium = {
+            duration = 3000,
+            buttonPresses = 12
+        },
+        hard = {
+            duration = 2500,
+            buttonPresses = 15
+        }
+    },
+    rewards = {
+        success = {
+            qualityBonus = 0,
+            yieldBonus = 0.1,      -- 10% extra items
+            xpMultiplier = 1.2,
+            failureChance = 0
+        },
+        failed = {
+            qualityBonus = 0,
+            yieldBonus = -0.2,     -- 20% fewer items
+            xpMultiplier = 0.8,
+            failureChance = 0.15   -- 15% chance to lose materials
+        }
+    }
+}
+
 -- Crafting stations: define where players can craft.  Each entry
 -- includes coordinates and a label for the interaction menu.
 Config.CraftingStations = {

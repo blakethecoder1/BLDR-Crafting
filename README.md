@@ -17,13 +17,17 @@ Perfect for servers wanting to add depth to their economy with item processing a
 - **Recipe System** - Extensive crafting recipes with requirements
 - **Blueprint System** - Unlock advanced recipes through progression
 - **Level Requirements** - Gate content behind player levels
-- **Progress Bars** - Visual crafting progress with animations
+- **Button-Mashing Minigame** - Interactive crafting with visual progress
+- **Custom Progress Bars** - Modern UI with pulsing glow effects and animations
 - **XP & Money Rewards** - Earn XP and bonus money for crafting
-- **Category System** - Organized recipes by type
+- **Category System** - Organized recipes by type (Cannabis, Coca, Opium, General)
 - **Quality System** - Crafting difficulty affects success
 - **Police Alerts** - Risk-reward for illegal crafting
-- **Interactive UI** - Clean, modern crafting interface
-- **qb-target Integration** - Smooth interaction system
+- **Interactive UI** - Clean, modern crafting interface with color themes
+- **qb-target/ox_target Integration** - Dual system support for smooth interactions
+- **Station Upgrades** - Upgrade stations for better crafting bonuses
+- **ESC Cancellation** - Cancel crafting at any time
+- **Control Locking** - Prevents movement/combat during crafting
 
 ## 🔨 Crafting Categories
 
@@ -365,12 +369,29 @@ Toggle debug mode to see crafting information in console.
 ### `/resetcrafting <player_id>`
 Reset a player's crafting data (admin only).
 
+## 🎮 Commands
+
+### Player Commands
+
+No player commands - all interactions are done through:
+- Third-eye targeting (qb-target/ox_target)
+- NUI interface for recipe selection
+- Automatic minigame triggering
+
+### Admin Commands
+
+No dedicated admin commands. Station and recipe management is done through:
+- Config.lua for station locations and recipes
+- Database for station upgrades
+- bldr_core for permission checks
+
 ## 🔐 Permissions
 
-Admin commands require permission through bldr_core:
-- QBCore 'god' or 'admin' permission
-- ACE permission: `bldr.admin`
-- License whitelist in bldr_core config
+Crafting permissions are handled through:
+- **Level Requirements** - Set per recipe in config
+- **Blueprint Unlocks** - Players must obtain blueprints for advanced recipes
+- **Station Access** - Some stations may require ownership or permissions
+- **Admin Override** - QBCore 'god' or 'admin' permissions bypass restrictions
 
 ## 💰 Money & XP System
 
